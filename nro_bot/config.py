@@ -12,6 +12,13 @@ def _ids(name: str) -> frozenset[int]:
     return frozenset(int(x) for x in raw.replace(" ", "").split(",") if x)
 
 
+def _strs(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return tuple(x.strip() for x in raw.split(",") if x.strip())
+
+
 def _int(name: str, default: int) -> int:
     return int(os.environ.get(name, default))
 
@@ -22,6 +29,15 @@ class Config:
     discord_token: str = field(repr=False, default="")
     channel_ids: frozenset[int] = frozenset()  # ボットが答えるチャンネル
     helpdesk_role_id: int | None = None  # 記録がないときにメンションするロール
+    # このロールを持つ人のチャンネルへの投稿（お知らせ、注意喚起）には答えない。空ならヘルプデスクのロール
+    quiet_role_ids: frozenset[int] = frozenset()
+    # この文字列から始まる投稿はお知らせとみなし、だれの投稿でも答えない
+    notice_prefixes: tuple[str, ...] = ("ーーーー",)
+
+    def staff_role_ids(self) -> frozenset[int]:
+        if self.quiet_role_ids:
+            return self.quiet_role_ids
+        return frozenset({self.helpdesk_role_id}) if self.helpdesk_role_id else frozenset()
 
     # Claude
     model: str = "claude-sonnet-5-5"
@@ -47,6 +63,8 @@ class Config:
             discord_token=os.environ.get("DISCORD_TOKEN", ""),
             channel_ids=_ids("NRO_BOT_CHANNEL_IDS"),
             helpdesk_role_id=int(role) if role else None,
+            quiet_role_ids=_ids("NRO_BOT_QUIET_ROLE_IDS"),
+            notice_prefixes=_strs("NRO_BOT_NOTICE_PREFIXES", cls.notice_prefixes),
             model=os.environ.get("NRO_BOT_MODEL", cls.model),
             effort=os.environ.get("NRO_BOT_EFFORT", cls.effort),
             max_rounds=_int("NRO_BOT_MAX_ROUNDS", cls.max_rounds),
