@@ -113,7 +113,7 @@ class HelpdeskBot(discord.Client):
     async def _on_new_question(self, msg: discord.Message) -> None:
         name = (msg.clean_content.strip().splitlines() or ["質問"])[0][:80] or "質問"
         thread = await msg.create_thread(name=name, auto_archive_duration=10080)
-        self.store.write("question", thread_id=thread.id, message_id=msg.id, user_id=msg.author.id, text=msg.clean_content)
+        self.store.write("question", guild_id=msg.guild.id if msg.guild else None, thread_id=thread.id, message_id=msg.id, user_id=msg.author.id, text=msg.clean_content)
         await self._respond(thread, msg.author.id, [{"role": "user", "content": msg.clean_content}])
 
     async def _on_thread_message(self, thread: discord.Thread, msg: discord.Message) -> None:
