@@ -1,0 +1,16 @@
+[Unit]
+Description=Sync public NRO repos for the helpdesk bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=nrobot
+Group=nrobot
+WorkingDirectory=/srv/nro-bot/app
+ExecStart=/srv/nro-bot/venv/bin/python scripts/sync_repos.py /srv/nro-bot/repos
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/srv/nro-bot/repos
