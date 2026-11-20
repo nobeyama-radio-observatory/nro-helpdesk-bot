@@ -58,3 +58,11 @@ def test_max_rounds(tmp_path):
     client, _ = fake_client(loop)
     ans = asyncio.run(Agent(Config(repos_dir=tmp_path, max_rounds=3), client).answer([{"role": "user", "content": "q"}]))
     assert ans.error == "max_rounds"
+
+
+def test_sonnet_cost(tmp_path):
+    client, m = fake_client([resp("end_turn", [NS(type="text", text="ok\n[[ESCALATE:no]]")])])
+    ans = asyncio.run(Agent(Config(repos_dir=tmp_path), client).answer([{"role": "user", "content": "q"}]))
+    assert m.calls[0]["model"] == "claude-sonnet-5-5"
+    # 100*2 + 50*10 + 1000*0.10 = 800 / 1e6
+    assert ans.cost_usd == 0.0008

@@ -62,3 +62,17 @@ def test_split_message():
     parts = split_message(text, limit=1000)
     assert all(len(p) <= 1000 for p in parts)
     assert "".join(parts) == text
+
+
+def test_quota_default_unlimited_per_user():
+    from nro_bot.bot import HelpdeskBot, FOOTER
+    from nro_bot.config import Config
+
+    bot = HelpdeskBot.__new__(HelpdeskBot)  # Discord に接続せずに上限の処理だけ試す
+    from collections import Counter
+    from nro_bot.logstore import now_jst
+    bot.cfg = Config(daily_limit=100)
+    bot.day, bot.count_total, bot.count_user = now_jst().date(), 0, Counter()
+    assert all(bot._take_quota(1) is None for _ in range(100))
+    assert bot._take_quota(2) is not None  # 全体の 101 件目は断る
+    assert "精度が低いことがあります" in FOOTER
