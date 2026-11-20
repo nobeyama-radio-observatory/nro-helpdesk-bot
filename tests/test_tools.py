@@ -76,3 +76,18 @@ def test_quota_default_unlimited_per_user():
     assert all(bot._take_quota(1) is None for _ in range(100))
     assert bot._take_quota(2) is not None  # 全体の 101 件目は断る
     assert "精度が低いことがあります" in FOOTER
+
+
+def test_staff_posts_are_not_questions():
+    from types import SimpleNamespace as NS
+    from nro_bot.bot import HelpdeskBot
+    from nro_bot.config import Config
+
+    bot = HelpdeskBot.__new__(HelpdeskBot)
+    bot.cfg = Config(helpdesk_role_id=111)
+    assert bot._is_staff(NS(roles=[NS(id=111)]))
+    assert not bot._is_staff(NS(roles=[NS(id=222)]))
+    assert not bot._is_staff(NS())  # ロールの情報がない（DM など）
+    bot.cfg = Config(helpdesk_role_id=111, quiet_role_ids=frozenset({333}))
+    assert bot._is_staff(NS(roles=[NS(id=333)]))
+    assert not bot._is_staff(NS(roles=[NS(id=111)]))
