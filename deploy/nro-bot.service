@@ -1,0 +1,23 @@
+[Unit]
+Description=NRO helpdesk Discord bot (trial)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=nrobot
+Group=nrobot
+WorkingDirectory=/srv/nro-bot/app
+EnvironmentFile=/srv/nro-bot/secrets.env
+Environment=NRO_BOT_REPOS_DIR=/srv/nro-bot/repos NRO_BOT_LOG_DIR=/srv/nro-bot/logs
+ExecStart=/srv/nro-bot/venv/bin/python -m nro_bot
+Restart=on-failure
+RestartSec=30
+# 守り：書けるのは記録の場所だけ
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/srv/nro-bot/logs
+
+[Install]
+WantedBy=multi-user.target

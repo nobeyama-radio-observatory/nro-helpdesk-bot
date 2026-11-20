@@ -1,0 +1,64 @@
+from pathlib import Path
+
+import pytest
+
+from nro_bot.bot import split_message
+from nro_bot.tools import RepoTools
+
+
+@pytest.fixture
+def repos(tmp_path: Path) -> Path:
+    root = tmp_path / "repos"
+    (root / "nro-context" / "users").mkdir(parents=True)
+    (root / "nro-context" / "README.md").write_text("# hub\nline2 Helpdesk\n", encoding="utf-8")
+    (root / "nro-context" / "users" / "README.md").write_text("窓口 Discord\n", encoding="utf-8")
+    (root / "nro-context" / ".git").mkdir()
+    (root / "nro-context" / ".git" / "config").write_text("secret", encoding="utf-8")
+    (tmp_path / "outside.md").write_text("outside secret", encoding="utf-8")
+    (root / "nro-context" / "link.md").symlink_to(tmp_path / "outside.md")
+    return root
+
+
+def tools(root: Path) -> RepoTools:
+    return RepoTools(root, "nobeyama-radio-observatory")
+
+
+def test_read_with_url(repos):
+    t = tools(repos)
+    out, err = t.run("read_file", {"path": "nro-context/README.md", "offset": 1})
+    assert not err
+    assert out.startswith("https://github.com/nobeyama-radio-observatory/nro-context/blob/main/README.md")
+    assert "1\t# hub" in out
+    assert t.files_read == ["nro-context/README.md"]
+
+
+@pytest.mark.parametrize("path", ["../outside.md", "/etc/passwd", "nro-context/../../outside.md", "nro-context/link.md", "nro-context/.git/config"])
+def test_cannot_escape(repos, path):
+    out, err = tools(repos).run("read_file", {"path": path, "offset": 1})
+    assert err
+    assert "secret" not in out
+
+
+def test_search_skips_git_and_symlink(repos):
+    out, err = tools(repos).run("search", {"pattern": "secret|helpdesk|discord", "path": ""})
+    assert not err
+    assert "README.md:2" in out
+    assert "users/README.md:1" in out
+    assert "secret" not in out
+
+
+def test_list_root(repos):
+    out, err = tools(repos).run("list_files", {"path": ""})
+    assert not err and "nro-context/" in out
+
+
+def test_bad_regex(repos):
+    _, err = tools(repos).run("search", {"pattern": "(", "path": ""})
+    assert err
+
+
+def test_split_message():
+    text = "a" * 50 + "\n" + "b" * 4000
+    parts = split_message(text, limit=1000)
+    assert all(len(p) <= 1000 for p in parts)
+    assert "".join(parts) == text
