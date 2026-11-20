@@ -1,0 +1,8 @@
+# 認証情報と記録はリポジトリに入れない
+secrets.env
+*.env
+logs/
+repos/
+.venv/
+__pycache__/
+*.pyc
