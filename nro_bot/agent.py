@@ -16,8 +16,11 @@ from .tools import TOOL_DEFINITIONS, RepoTools
 SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.md").read_text(encoding="utf-8")
 ESCALATE_RE = re.compile(r"\[\[ESCALATE:(yes|no)\]\]\s*$", re.IGNORECASE)
 
-# Claude Opus 5.5 の単価（USD / 100万トークン）。概算の記録用
-PRICE = {"input": 4.0, "output": 20.0, "cache_write": 5.0, "cache_read": 0.20}
+# 単価（USD / 100万トークン）。費用の概算の記録用。キャッシュの書き込みは入力の 1.25 倍
+PRICES = {
+    "claude-sonnet-5-5": {"input": 2.0, "output": 10.0, "cache_write": 2.5, "cache_read": 0.10},
+    "claude-opus-5-5": {"input": 4.0, "output": 20.0, "cache_write": 5.0, "cache_read": 0.20},
+}
 
 
 @dataclass
@@ -40,12 +43,15 @@ def _add_usage(total: dict, u) -> None:
         total[k] = total.get(k, 0) + (getattr(u, k, 0) or 0)
 
 
-def _cost(u: dict) -> float:
+def _cost(u: dict, model: str) -> float:
+    p = PRICES.get(model)
+    if p is None:  # 単価を知らないモデルは概算しない
+        return 0.0
     return (
-        u.get("input_tokens", 0) * PRICE["input"]
-        + u.get("output_tokens", 0) * PRICE["output"]
-        + u.get("cache_creation_input_tokens", 0) * PRICE["cache_write"]
-        + u.get("cache_read_input_tokens", 0) * PRICE["cache_read"]
+        u.get("input_tokens", 0) * p["input"]
+        + u.get("output_tokens", 0) * p["output"]
+        + u.get("cache_creation_input_tokens", 0) * p["cache_write"]
+        + u.get("cache_read_input_tokens", 0) * p["cache_read"]
     ) / 1_000_000
 
 
@@ -77,7 +83,7 @@ class Agent:
             ans.error = f"{type(e).__name__}: {getattr(e, 'message', e)}"
         ans.elapsed_s = round(time.monotonic() - t0, 1)
         ans.files_read = repo.files_read
-        ans.cost_usd = round(_cost(ans.usage), 4)
+        ans.cost_usd = round(_cost(ans.usage, self.cfg.model), 4)
         return ans
 
     async def _loop(self, conversation: list[dict], repo: RepoTools, ans: Answer) -> None:

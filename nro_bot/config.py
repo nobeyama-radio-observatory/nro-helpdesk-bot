@@ -24,15 +24,15 @@ class Config:
     helpdesk_role_id: int | None = None  # 記録がないときにメンションするロール
 
     # Claude
-    model: str = "claude-opus-5-5"
+    model: str = "claude-sonnet-5-5"
     effort: str = "medium"
     max_rounds: int = 25  # 一問あたりの API 呼び出しの上限
     timeout_s: int = 300  # 一問あたりの時間の上限
     web_fetch_max_uses: int = 6
 
     # 上限
-    daily_limit: int = 50  # 一日あたりの問いの数（全体）
-    per_user_daily_limit: int = 10  # 一日あたりの問いの数（一人あたり）
+    daily_limit: int = 100  # 一日あたりの問いの数（全体）
+    per_user_daily_limit: int = 0  # 一日あたりの問いの数（一人あたり）。0 は制限なし
     concurrency: int = 2
 
     # 場所

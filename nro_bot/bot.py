@@ -22,7 +22,10 @@ from .logstore import LogStore, now_jst
 log = logging.getLogger("nro_bot")
 
 HEADER = "🤖 **AI の回答（試行）**　観測所の正式な回答ではありません。正本は観測所のウェブサイトとヘルプデスクです。"
-FOOTER = "-# 回答に 👍（役に立った）⚠️（一部に誤りや不足）❌（誤り）で反応していただけると、改善に使います。"
+FOOTER = (
+    "⚠️ まだ試験運用中のため、回答の精度が低いことがあります。大事な点は正本とヘルプデスクで確かめてください。\n"
+    "-# 回答に 👍（役に立った）⚠️（一部に誤りや不足）❌（誤り）で反応していただけると、改善に使います。"
+)
 THINKING = "🔎 文脈基盤を調べています…（1〜数分かかります）"
 DISCORD_LIMIT = 1900
 
@@ -65,7 +68,7 @@ class HelpdeskBot(discord.Client):
             self.day, self.count_total, self.count_user = today, 0, Counter()
         if self.count_total >= self.cfg.daily_limit:
             return "本日の試行の上限に達しました。明日以降にもう一度お試しいただくか、ヘルプデスクにお問い合わせください。"
-        if self.count_user[user_id] >= self.cfg.per_user_daily_limit:
+        if self.cfg.per_user_daily_limit and self.count_user[user_id] >= self.cfg.per_user_daily_limit:
             return "お一人あたりの本日の上限に達しました。明日以降にもう一度お試しください。"
         self.count_total += 1
         self.count_user[user_id] += 1
