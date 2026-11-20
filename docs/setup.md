@@ -72,8 +72,12 @@ sudo systemctl enable --now nro-bot-update.timer
 | 自動の更新を止める | `sudo systemctl disable --now nro-bot-update.timer` |
 | 更新のログを見る | `journalctl -u nro-bot-update` |
 | 公開リポジトリをすぐ更新する | `sudo systemctl start nro-bot-sync` |
+| 集計を見る（今月） | `sudo -u nrobot python3 /srv/nro-bot/app/scripts/report.py` |
+| 集計を見る（すべて、公開用） | `sudo -u nrobot python3 /srv/nro-bot/app/scripts/report.py --all --public` |
 | 記録を見る | `sudo -u nrobot less /srv/nro-bot/logs/$(date +%Y-%m).jsonl` |
 
 ## 記録について
 
 `/srv/nro-bot/logs/YYYY-MM.jsonl` に、問い（`question`、`followup`）、回答（`answer`：読んだファイル、開いた URL、トークン数、費用の概算、要したラウンド数）、担当者の書き込み（`advice`）、反応（`reaction`）が一行ずつ残ります。投稿者の ID と本文を含むので**非公開**です。公開側には、匿名化して集計したものだけを載せます。
+
+集計は `scripts/report.py` で見られます。オプションなしでは今月の分を、問いの本文とスレッドへのリンクを含めて表示します（所内で見る形）。`--month YYYY-MM`、`--all`、`--since YYYY-MM-DD`、`--until YYYY-MM-DD` で範囲を変えられます。`--public` を付けると、本文、ID、リンクを含まない数だけの集計になります。公開側（nro-context の試行の記録など）に載せるのは、この形だけにしてください。
