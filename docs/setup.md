@@ -45,13 +45,32 @@ journalctl -u nro-bot.service -f      # ログを見る（Ctrl-C で抜ける）
 
 `logged in as ...` が出れば、Discord につながっています。
 
+## 5. 更新を自動で反映する（任意）
+
+10 分ごとに GitHub の `main` を確かめ、更新があれば取得してボットを再起動します。
+
+```bash
+sudo install -o root -g root -m 755 /srv/nro-bot/app/deploy/nro-bot-update.sh /usr/local/sbin/nro-bot-update
+sudo cp /srv/nro-bot/app/deploy/nro-bot-update.service /srv/nro-bot/app/deploy/nro-bot-update.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now nro-bot-update.timer
+```
+
+- 更新の内容：`main` の取得、`requirements.txt` が変わったときだけライブラリの入れ直し、読み込みの確認、ボットの再起動。
+- 読み込みに失敗したら、元の版に戻して再起動しません（動いているボットはそのまま）。直した版が `main` に入れば、次の確認で反映されます。
+- 再起動のときに答えている途中の問いがあれば、その回答は途切れます。
+- **更新のスクリプトと `deploy/` の systemd の設定は、自動では入れ替わりません。** root で動くものが、リポジトリの変更でそのまま書き換わらないようにするためです。`deploy/` が変わったときは、更新のログに注意が出るので、この節と 4 の手順で入れ直してください。
+- 更新のログは `journalctl -u nro-bot-update` で見られます。
+
 ## 日々の操作
 
 | 操作 | コマンド |
 |---|---|
 | 止める | `sudo systemctl stop nro-bot` |
 | 再開する | `sudo systemctl start nro-bot` |
-| プログラムを更新する | `sudo -u nrobot git -C /srv/nro-bot/app pull && sudo -u nrobot /srv/nro-bot/venv/bin/pip install -r /srv/nro-bot/app/requirements.txt && sudo systemctl restart nro-bot` |
+| プログラムをすぐ更新する | `sudo systemctl start nro-bot-update`（5 を設定した場合。設定していなければ `sudo -u nrobot git -C /srv/nro-bot/app pull && sudo -u nrobot /srv/nro-bot/venv/bin/pip install -r /srv/nro-bot/app/requirements.txt && sudo systemctl restart nro-bot`） |
+| 自動の更新を止める | `sudo systemctl disable --now nro-bot-update.timer` |
+| 更新のログを見る | `journalctl -u nro-bot-update` |
 | 公開リポジトリをすぐ更新する | `sudo systemctl start nro-bot-sync` |
 | 記録を見る | `sudo -u nrobot less /srv/nro-bot/logs/$(date +%Y-%m).jsonl` |
 
