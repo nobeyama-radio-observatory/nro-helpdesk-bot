@@ -88,11 +88,15 @@ class HelpdeskBot(discord.Client):
                 await self._on_thread_message(ch, msg)
             return
         if ch.id in self.cfg.channel_ids:
-            if self._is_staff(msg.author):
-                # 担当者のお知らせや注意喚起には答えない
+            if self._is_staff(msg.author) or self._is_notice(msg.content):
+                # 担当者の投稿と、お知らせの印から始まる投稿には答えない
                 self.store.write("notice", message_id=msg.id, user_id=msg.author.id, text=msg.clean_content)
                 return
             await self._on_new_question(msg)
+
+    def _is_notice(self, content: str) -> bool:
+        text = (content or "").lstrip()
+        return any(text.startswith(p) for p in self.cfg.notice_prefixes)
 
     def _is_staff(self, author) -> bool:
         role_ids = {r.id for r in getattr(author, "roles", [])}

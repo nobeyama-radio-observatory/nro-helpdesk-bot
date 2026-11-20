@@ -91,3 +91,29 @@ def test_staff_posts_are_not_questions():
     bot.cfg = Config(helpdesk_role_id=111, quiet_role_ids=frozenset({333}))
     assert bot._is_staff(NS(roles=[NS(id=333)]))
     assert not bot._is_staff(NS(roles=[NS(id=111)]))
+
+
+def test_notice_prefix():
+    from nro_bot.bot import HelpdeskBot
+    from nro_bot.config import Config
+
+    bot = HelpdeskBot.__new__(HelpdeskBot)
+    bot.cfg = Config()
+    assert bot._is_notice("ーーーー\nお知らせです、")
+    assert bot._is_notice("  ーーーーーーー お知らせ")
+    assert not bot._is_notice("ーーー 3本だけ")
+    assert not bot._is_notice("質問です。ーーーー")
+    assert not bot._is_notice("")
+    bot.cfg = Config(notice_prefixes=("【お知らせ】", "----"))
+    assert bot._is_notice("【お知らせ】メンテナンス")
+    assert bot._is_notice("----\n連絡")
+    assert not bot._is_notice("ーーーー\nお知らせ")
+
+
+def test_notice_prefixes_from_env(monkeypatch):
+    from nro_bot.config import Config
+
+    monkeypatch.setenv("NRO_BOT_NOTICE_PREFIXES", "【お知らせ】, ----")
+    assert Config.from_env().notice_prefixes == ("【お知らせ】", "----")
+    monkeypatch.delenv("NRO_BOT_NOTICE_PREFIXES")
+    assert Config.from_env().notice_prefixes == ("ーーーー",)
